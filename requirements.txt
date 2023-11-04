@@ -2,3 +2,4 @@ itertools
 yahoo_fantasy_api
 yahoo_oauth
 json
+yahoofantasy
