@@ -84,7 +84,7 @@ for roster in rosters:
 # combinations = list(itertools.combinations(my_list, 2)) (list, choose)
 
 print("Making roster combinations, calculating scores")
-league_combinations = []
+league_combinations = {}
 for manager in league_possibilities:
     position_combinations = {}
     for position_possibilities in manager['possibilities']:
@@ -104,30 +104,26 @@ for manager in league_possibilities:
                             for defense in position_combinations["DEF"]:
                                 for wrt in position_combinations["W/R/T"]:
                                     for flex in wrt: # check if any flex players are duplicating
-                                        if True: # no_dupe_checker(flex,rb,wr,te):
-                                            roster_combinations.append([qb, rb, wr, te, wrt, k, defense])
-                                            point_combinations.append(sum([player['points'] for position in roster_combinations[-1] for player in position])) # flattens combination list and extracts only points
+                                        if no_dupe_checker(flex, rb, wr, te):
+                                            # roster_combinations.extend(sorted([list(qb) + list(rb) + list(wr) + list(te) + list(wrt) + list(k) + list(defense)]))
+                                            roster_combinations.append(sorted([list(qb) + list(rb) + list(wr) + list(te) + list(wrt) + list(k) + list(defense)]))
 
-        print(manager['manager'], "\t", len(roster_combinations))
+        # [print(i) for i in roster_combinations[0:4]]
+        combination_set = list(roster_combinations for roster_combinations,_ in itertools.groupby(roster_combinations)) # remove slot swapping duplicates
+        for combination in combination_set:
+            x = [player['points'] for position in combination for position in combination]
+            point_combinations.append(sum([player['points'] for position in combination for player in position])) # flattens list and sums only points
+
+        # all combinations for single manager tabulated
+        print(manager['manager'], "\t", len(roster_combinations), len(combination_set))
+        # [print(i) for i in combination_set[0:4]]
+        # print(point_combinations[0:20])
+
         # s = pd.Series(point_combinations)
         # print(s.describe())
-        arr = np.array(point_combinations)
 
-        bins = np.linspace(math.ceil(min(arr)),
-                           math.floor(max(arr)),
-                           20)  # fixed number of bins
-
-        plt.xlim([min(arr) - 5, max(arr) + 5])
-
-        plt.hist(arr, bins=bins, alpha=0.5)
-        plt.title(f'{manager["manager"]} - Week {week}')
-        plt.xlabel('Points')
-        plt.ylabel('Number of Roster Combinations')
-
-        plt.show()
-
-
-        # league_combinations.append()
+        if True:
+            league_combinations[manager['manager']] = point_combinations
 
 
         # [ QB(AB, AC), WR (11, 12), RB (ZY, ZX)...]
@@ -139,6 +135,8 @@ for manager in league_possibilities:
         1209600
         1234800"""
 stop = time.perf_counter()
+
+print(list(league_combinations.keys()))
 
 print("time", stop - start)
 print("Graphs and Statistics")
@@ -154,8 +152,32 @@ print("Graphs and Statistics")
     # "position": player.primary_position,
     # "roster_position": player.selected_position.position,
     # "points": player.get_points(week_num),
-#
-# target_week = league.weeks()[week-1]
-# for matchup in target_week.matchups:
-#     print(f"{matchup.team1.name} vs {matchup.team2.name}")
+target_week = league.weeks()[week-1]
+
+for matchup in target_week.matchups:
+    print(f"{matchup.team1.name} vs {matchup.team2.name}")
+    print(f"{matchup.teams.team[0].team_points.total} - {matchup.teams.team[1].team_points.total}")
+    matchup_points = [matchup.teams.team[0].team_points.total, matchup.teams.team[1].team_points.total]
+
+    arr1 = np.array(league_combinations[str(matchup.team1.name)])
+    arr2 = np.array(league_combinations[str(matchup.team2.name)])
+    arr = np.concatenate((arr1, arr2), axis=None)
+
+    bins = np.linspace(math.ceil(min(arr)),
+                       math.floor(max(arr)),
+                       20)  # fixed number of bins
+
+    plt.xlim([min(arr) - 5, max(arr) + 5])
+
+    plt.hist(arr1, bins=bins, alpha=0.5, label=matchup.team1.name)
+    plt.hist(arr2, bins=bins, alpha=0.5, label=matchup.team2.name)
+
+    plt.axvline(x=matchup_points[0])
+    plt.axvline(x=matchup_points[1])
+
+    plt.title(f'{matchup.team1.name} vs {matchup.team2.name}- Week {week}')
+    plt.xlabel('Points')
+    plt.ylabel('Number of Roster Combinations')
+
+    plt.show()
 
